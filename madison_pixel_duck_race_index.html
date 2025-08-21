@@ -1,0 +1,564 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Madison Pixel Duck Race</title>
+  <meta name="description" content="A one-file pixel duck racing game themed around Madison, Wisconsin. Add your ducks, start the race, and share a URL with friends." />
+  <meta property="og:title" content="Madison Pixel Duck Race" />
+  <meta property="og:description" content="Add ducks, start the race, and share a link. One-file, no install." />
+  <meta property="og:type" content="website" />
+  <meta name="theme-color" content="#1f2937" />
+  <style>
+    :root{
+      --bg: #0b1020; /* deep night */
+      --panel: #11182f; /* indigo slate */
+      --accent: #fcd34d; /* warm gold */
+      --accent-2: #60a5fa; /* lake blue */
+      --text: #e5e7eb; /* light gray */
+      --muted: #9ca3af; /* muted gray */
+      --success: #34d399; /* mint */
+      --danger: #f87171; /* coral */
+    }
+    *{ box-sizing: border-box; }
+    html, body { height: 100%; }
+    body{
+      margin:0; background:linear-gradient(#0b1020, #11182f 30%, #0b1020);
+      color:var(--text); font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      letter-spacing: 0.2px;
+      display:flex; flex-direction:column; align-items:center;
+    }
+    header{
+      width:100%; max-width:1100px; padding:20px 16px 8px; margin:0 auto;
+      display:flex; align-items:center; justify-content:space-between; gap:12px;
+    }
+    header h1{ font-size: clamp(20px, 2.8vw, 30px); margin:0; display:flex; align-items:center; gap:10px; }
+    header h1 .logo{ width:28px; height:28px; image-rendering: pixelated; }
+    header .badge{ font-size:12px; color:var(--muted); }
+
+    main{ width:100%; max-width:1100px; padding:0 16px 24px; margin:0 auto; display:grid; grid-template-columns: 1fr; gap:16px; }
+    @media (min-width: 980px){
+      main{ grid-template-columns: 360px 1fr; }
+    }
+    .panel{ background:rgba(17,24,47,0.95); border:1px solid rgba(255,255,255,0.06); border-radius:16px; box-shadow:0 10px 30px rgba(0,0,0,0.35); }
+    .controls{ padding:14px; display:flex; flex-direction:column; gap:12px; }
+    .controls h2{ margin:2px 0 6px; font-size:14px; color:var(--muted); text-transform:uppercase; letter-spacing:1px; }
+
+    .row{ display:flex; gap:8px; align-items:center; width:100%; }
+    label{ font-size:12px; color:var(--muted); }
+    input[type="text"]{
+      width:100%; padding:10px 12px; border-radius:12px; border:1px solid rgba(255,255,255,0.08); background:#0f1430; color:var(--text);
+      outline:none;
+    }
+    input[type="color"]{ appearance:none; width:42px; height:42px; padding:0; border:none; border-radius:10px; background:#0f1430; }
+    button{
+      padding:10px 12px; border-radius:12px; border:1px solid rgba(255,255,255,0.08); background:#0f1430; color:var(--text);
+      cursor:pointer; font-weight:600; transition:transform .02s ease, box-shadow .15s ease; box-shadow:0 4px 0 rgba(0,0,0,0.5);
+    }
+    button:hover{ box-shadow:0 6px 0 rgba(0,0,0,0.55); }
+    button:active{ transform: translateY(1px); box-shadow:0 3px 0 rgba(0,0,0,0.5); }
+    button.primary{ background:linear-gradient(180deg, var(--accent), #d1a836); color:#1f2937; border-color:#e5b23a; }
+    button.ghost{ background:transparent; }
+    button.danger{ background:linear-gradient(180deg, var(--danger), #ef4444); color:#1f2937; border-color:#ef4444; }
+
+    .ducks{ display:flex; flex-direction:column; gap:8px; }
+    .duck-item{ display:flex; gap:8px; align-items:center; background:#0b1028; padding:8px; border-radius:12px; border:1px dashed rgba(255,255,255,0.06); }
+    .duck-swatch{ width:28px; height:28px; border-radius:6px; border:1px solid rgba(0,0,0,0.4); image-rendering: pixelated; }
+    .duck-name{ flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+
+    .actions{ display:flex; flex-wrap:wrap; gap:8px; }
+
+    .canvas-wrap{ position:relative; }
+    canvas{ width:100%; height:auto; display:block; border-radius:16px; border:1px solid rgba(255,255,255,0.06); background:#0a0f25; image-rendering: pixelated; }
+
+    .help{ font-size:12px; color:var(--muted); line-height:1.5; padding:0 14px 12px; }
+
+    .footer{ text-align:center; font-size:12px; color:var(--muted); padding:8px; }
+    .winner{ color:var(--success); font-weight:800; }
+    .caps{ text-transform: uppercase; letter-spacing: 1px; font-size:11px; color:var(--muted); }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>
+      <svg class="logo" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <!-- Simple pixel duck head -->
+        <rect x="1" y="5" width="10" height="6" fill="#F6E05E"/>
+        <rect x="10" y="7" width="4" height="2" fill="#F59E0B"/>
+        <rect x="3" y="6" width="2" height="2" fill="#111827"/>
+      </svg>
+      Madison Pixel Duck Race
+    </h1>
+    <div class="badge caps">One-file · No install</div>
+  </header>
+
+  <main>
+    <section class="panel controls" aria-label="Controls">
+      <h2>Lineup</h2>
+      <div class="row">
+        <input id="nameInput" type="text" placeholder="Duck name (e.g., Mendota)" maxlength="18" aria-label="Duck name" />
+        <input id="colorInput" type="color" value="#60a5fa" aria-label="Duck color" />
+        <button id="addDuckBtn" title="Add duck">Add</button>
+      </div>
+
+      <div class="ducks" id="ducksList" aria-live="polite"></div>
+
+      <div class="actions">
+        <button id="randomMadisonBtn" class="ghost" title="Add Madison-themed ducks">+ Random Madison Ducks</button>
+        <button id="clearAllBtn" class="danger" title="Remove all ducks">Clear All</button>
+      </div>
+
+      <h2>Race</h2>
+      <div class="actions">
+        <button id="startBtn" class="primary">Start Race</button>
+        <button id="resetBtn">Reset</button>
+        <button id="shareBtn">Copy Share URL</button>
+      </div>
+
+      <div class="help">
+        Tip: Use <span class="caps">Copy Share URL</span> to send this exact lineup. Add <code>&seed=ANYNUMBER</code> to make a repeatable race.
+      </div>
+
+      <div id="results" class="help" aria-live="polite"></div>
+    </section>
+
+    <section class="panel canvas-wrap" aria-label="Race track">
+      <canvas id="raceCanvas" width="1200" height="640" role="img" aria-label="Pixel duck race animation"></canvas>
+    </section>
+  </main>
+
+  <div class="footer">Made with ❤️ for Madison. No data collected.</div>
+
+<script type="module">
+// ===== Utilities =====
+const $ = sel => document.querySelector(sel);
+const $$ = sel => Array.from(document.querySelectorAll(sel));
+const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+const randInt = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
+
+// Mulberry32 PRNG for deterministic races when seed provided
+function mulberry32(a){
+  return function(){
+    let t = a += 0x6D2B79F5;
+    t = Math.imul(t ^ t >>> 15, t | 1);
+    t ^= t + Math.imul(t ^ t >>> 7, t | 61);
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  }
+}
+
+// Parse URL params → ducks + seed
+function parseParams(){
+  const url = new URL(window.location.href);
+  const ducksParam = url.searchParams.get('ducks');
+  const seedParam = url.searchParams.get('seed');
+  const ducks = [];
+  if(ducksParam){
+    const parts = ducksParam.split(';');
+    for(const p of parts){
+      const [nameEnc, color] = p.split(',');
+      if(!nameEnc || !color) continue;
+      const name = decodeURIComponent(nameEnc);
+      ducks.push({ name, color });
+    }
+  }
+  const seed = seedParam ? Number(seedParam) : null;
+  return { ducks, seed };
+}
+
+function buildShareURL(ducks, seed){
+  const url = new URL(window.location.href);
+  if(!ducks.length){ url.searchParams.delete('ducks'); }
+  else{
+    const packed = ducks.map(d => `${encodeURIComponent(d.name)},${d.color}`).join(';');
+    url.searchParams.set('ducks', packed);
+  }
+  if(seed !== undefined && seed !== null && !Number.isNaN(seed)){
+    url.searchParams.set('seed', String(seed));
+  } else {
+    url.searchParams.delete('seed');
+  }
+  url.hash = '';
+  return url.toString();
+}
+
+async function copyToClipboard(text){
+  try{
+    await navigator.clipboard.writeText(text);
+    return true;
+  }catch{
+    // Fallback
+    const ta = document.createElement('textarea');
+    ta.value = text; document.body.appendChild(ta); ta.select();
+    try{ document.execCommand('copy'); return true; } finally { ta.remove(); }
+  }
+}
+
+// ===== State =====
+let ducks = [];
+let raceState = 'idle'; // 'idle' | 'running' | 'finished'
+let rng = Math.random;
+let seedInUse = null;
+
+const COLORS = ["#60a5fa","#fca5a5","#86efac","#fbbf24","#c4b5fd","#f472b6","#f59e0b","#34d399","#a7f3d0","#93c5fd"];
+
+const MADISON_NAMES = [
+  "Mendota","Monona","Isthmus","Capitol","Bucky","Bascom","State St.","Terrace","Forward","Olin","Henry Vilas","Tenney","Garver","Willow","Babcock"
+];
+
+// ===== Canvas Setup =====
+const canvas = document.getElementById('raceCanvas');
+const ctx = canvas.getContext('2d');
+
+function resizeCanvasToDisplaySize(){
+  const ratio = window.devicePixelRatio || 1;
+  const cssWidth = canvas.clientWidth;
+  const cssHeight = Math.round(cssWidth * 0.55);
+  canvas.style.height = cssHeight + 'px';
+  const w = Math.floor(cssWidth * ratio);
+  const h = Math.floor(cssHeight * ratio);
+  if(canvas.width !== w || canvas.height !== h){
+    canvas.width = w; canvas.height = h;
+  }
+}
+window.addEventListener('resize', () => { resizeCanvasToDisplaySize(); drawScene(); });
+
+// ===== Duck Drawing (pixel style) =====
+function drawPixelDuck(ctx, x, y, scale, color){
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(scale, scale);
+  // Body
+  ctx.fillStyle = color; ctx.fillRect(0, 3, 12, 6); // body
+  // Head
+  ctx.fillRect(2, 1, 6, 4);
+  // Eye
+  ctx.fillStyle = '#0b1020'; ctx.fillRect(3, 2, 1, 1);
+  // Beak
+  ctx.fillStyle = '#f59e0b'; ctx.fillRect(8, 3, 3, 2);
+  // Wing outline
+  ctx.fillStyle = shade(color, -25); ctx.fillRect(5, 5, 3, 2);
+  // Water ripple (tiny)
+  ctx.fillStyle = 'rgba(96,165,250,0.5)'; ctx.fillRect(1, 9, 12, 1);
+  ctx.restore();
+}
+
+function shade(hex, percent){
+  const f = parseInt(hex.slice(1),16), t = percent < 0 ? 0 : 255, p = Math.abs(percent)/100;
+  const R = f>>16, G = f>>8&0x00FF, B = f&0x0000FF;
+  const r = Math.round((t-R)*p)+R, g = Math.round((t-G)*p)+G, b = Math.round((t-B)*p)+B;
+  return `#${(1<<24 | (r<<16) | (g<<8) | b).toString(16).slice(1)}`;
+}
+
+// ===== Track Drawing (Madison vibe) =====
+function drawScene(){
+  const w = canvas.width, h = canvas.height;
+  ctx.imageSmoothingEnabled = false;
+  // Background sky gradient
+  const sky = ctx.createLinearGradient(0,0,0,h);
+  sky.addColorStop(0, '#0b1020');
+  sky.addColorStop(0.5, '#12214a');
+  sky.addColorStop(1, '#0a0f25');
+  ctx.fillStyle = sky; ctx.fillRect(0,0,w,h);
+
+  // Pixel stars
+  ctx.fillStyle = '#e5e7eb';
+  for(let i=0;i<50;i++){
+    const x = (i*97 % w);
+    const y = (i*53 % (h*0.35));
+    if((i%7)===0) ctx.fillRect(x, y, 2, 2);
+  }
+
+  // Lake strip (Monona/Mendota)
+  const lakeTop = Math.floor(h*0.62);
+  ctx.fillStyle = '#173b6d'; ctx.fillRect(0, lakeTop, w, h-lakeTop);
+  // gentle waves
+  ctx.fillStyle = '#1d4ed8';
+  for(let i=0;i<w;i+=12){ ctx.fillRect(i, lakeTop+ (i%24===0?2:4), 8, 1); }
+
+  // Skyline silhouette w/ Capitol dome
+  const baseY = Math.floor(h*0.5);
+  ctx.fillStyle = '#0e1726';
+  ctx.fillRect(0, baseY, w, 60);
+  // Capitol dome (simple pixels)
+  const cx = Math.floor(w*0.65);
+  ctx.fillStyle = '#1f2a44';
+  ctx.fillRect(cx-30, baseY-50, 60, 20); // lower dome
+  ctx.fillRect(cx-20, baseY-70, 40, 20); // mid
+  ctx.fillRect(cx-8, baseY-84, 16, 14);  // top
+  ctx.fillRect(cx-2, baseY-92, 4, 8);    // spire
+
+  // Race lane (near lake)
+  const trackY = Math.floor(h*0.68);
+  const laneHeight = Math.floor(h*0.22);
+  ctx.fillStyle = '#0b1228'; ctx.fillRect(0, trackY, w, laneHeight);
+  // Lane lines
+  ctx.fillStyle = '#1f375f';
+  for(let y=0; y<laneHeight; y+=Math.floor(laneHeight / Math.max(ducks.length, 1))){
+    ctx.fillRect(0, trackY + y, w, 1);
+  }
+
+  // Start & finish lines
+  const padding = Math.floor(w*0.05);
+  const finishX = w - padding - 10;
+  // Finish checkerboard
+  for(let y=trackY; y<trackY+laneHeight; y+=10){
+    for(let x=0; x<10; x+=5){
+      const xx = finishX + ((x/5)%2===0?0:5);
+      ctx.fillStyle = ((Math.floor(y/5)+x)%2===0) ? '#e5e7eb' : '#111827';
+      ctx.fillRect(xx, y, 5, 5);
+    }
+  }
+
+  // Draw ducks
+  const laneSize = laneHeight / Math.max(ducks.length, 1);
+  const scale = Math.max(2, Math.floor(h/160));
+  for(let i=0;i<ducks.length;i++){
+    const d = ducks[i];
+    const y = trackY + i*laneSize + Math.floor(laneSize/2) - 8*scale;
+    drawPixelDuck(ctx, d.x, y, scale, d.color);
+  }
+}
+
+// ===== Race Logic =====
+let rafId = null;
+let startTime = null;
+
+function setupRace(){
+  const w = canvas.width;
+  const padding = Math.floor(w*0.05);
+  const startX = padding;
+  const finishX = w - padding - 20; // duck width ~ 12*scale -> safe gap
+  const laneHeight = Math.floor(canvas.height*0.22);
+  const laneSize = laneHeight / Math.max(ducks.length, 1);
+  const scale = Math.max(2, Math.floor(canvas.height/160));
+
+  const baseSpeed = Math.max(1.2, Math.floor(w/900));
+
+  ducks = ducks.map((d, i) => ({
+    ...d,
+    x: startX + randNoise(0, 8),
+    y: 0, // computed in draw
+    speed: baseSpeed + rng()*0.6,
+    finishedAt: null,
+    boostT: 0
+  }));
+
+  return { startX, finishX, scale, laneSize };
+}
+
+function randNoise(min, max){ return (rng()* (max-min)) + min; }
+
+function startRace(){
+  if(!ducks.length || raceState === 'running') return;
+  raceState = 'running';
+  startTime = performance.now();
+  const metrics = setupRace();
+
+  const step = (now) => {
+    const dt = (now - startTime) / 1000; // seconds since start; used for effects
+    const w = canvas.width;
+    const padding = Math.floor(w*0.05);
+
+    let someoneFinished = false;
+    for(const d of ducks){
+      if(d.finishedAt) continue;
+      // Occasional quack boost
+      if(rng() < 0.01 && d.boostT <= 0){ d.boostT = 20 + Math.floor(rng()*40); }
+      const boost = d.boostT > 0 ? 0.8 : 0;
+      if(d.boostT > 0) d.boostT--;
+
+      const jitter = (rng()-0.5)*0.3;
+      d.x += d.speed + boost + jitter;
+
+      if(d.x > metrics.finishX){
+        d.x = metrics.finishX;
+        d.finishedAt = now;
+        someoneFinished = true;
+      }
+    }
+
+    drawScene();
+
+    // Draw names above ducks
+    ctx.font = `${Math.max(10, Math.floor(metrics.scale*5))}px monospace`;
+    ctx.fillStyle = '#e5e7eb';
+    const trackY = Math.floor(canvas.height*0.68);
+    for(let i=0;i<ducks.length;i++){
+      const d = ducks[i];
+      const laneSize = metrics.laneSize;
+      const y = trackY + i*laneSize + Math.floor(laneSize/2) - 12*metrics.scale;
+      ctx.fillText(d.name, Math.floor(d.x), Math.floor(y));
+    }
+
+    if(someoneFinished){
+      raceState = 'finished';
+      cancelAnimationFrame(rafId);
+      const winner = ducks.find(d => d.finishedAt);
+      announceWinner(winner);
+      sparkleConfetti();
+      return;
+    }
+
+    rafId = requestAnimationFrame(step);
+  };
+
+  rafId = requestAnimationFrame(step);
+}
+
+function resetRace(){
+  if(rafId) cancelAnimationFrame(rafId);
+  raceState = 'idle';
+  // restore x positions
+  const w = canvas.width;
+  const padding = Math.floor(w*0.05);
+  for(const d of ducks){ d.x = padding + rng()*5; d.finishedAt = null; d.boostT = 0; }
+  drawScene();
+  $('#results').innerHTML = '';
+}
+
+function announceWinner(w){
+  const ms = w && w.finishedAt && startTime ? Math.round(w.finishedAt - startTime) : 0;
+  const s = (ms/1000).toFixed(2);
+  $('#results').innerHTML = `<span class="winner">🏆 ${escapeHTML(w.name)}</span> wins in ${s}s`;
+}
+
+function escapeHTML(str){
+  return str.replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[s]));
+}
+
+// ===== Confetti =====
+let confetti = [];
+function sparkleConfetti(){
+  confetti = Array.from({length: 120}).map(()=>({
+    x: rng()*canvas.width,
+    y: -randInt(0, 200),
+    vy: 1 + rng()*2,
+    size: 3 + Math.floor(rng()*4),
+    color: COLORS[Math.floor(rng()*COLORS.length)],
+    life: 120 + Math.floor(rng()*80)
+  }));
+
+  const tick = () =>{
+    drawScene();
+    // overlay for celebration
+    for(const c of confetti){
+      ctx.fillStyle = c.color; ctx.fillRect(c.x, c.y, c.size, c.size);
+      c.y += c.vy; c.life--;
+    }
+    confetti = confetti.filter(c => c.life > 0 && c.y < canvas.height+10);
+    if(confetti.length>0) requestAnimationFrame(tick);
+  };
+  requestAnimationFrame(tick);
+}
+
+// ===== UI Wiring =====
+function renderDucksList(){
+  const el = $('#ducksList');
+  el.innerHTML = '';
+  ducks.forEach((d, i) => {
+    const row = document.createElement('div');
+    row.className = 'duck-item';
+    row.innerHTML = `
+      <div class="duck-swatch" style="background:${d.color}"></div>
+      <div class="duck-name">${escapeHTML(d.name)}</div>
+      <button title="Edit" data-idx="${i}" data-action="edit">Edit</button>
+      <button title="Remove" data-idx="${i}" data-action="remove" class="danger">Remove</button>
+    `;
+    el.appendChild(row);
+  });
+}
+
+function addDuck(name, color){
+  name = name?.trim() || `Duck ${ducks.length+1}`;
+  color = color || COLORS[ducks.length % COLORS.length];
+  ducks.push({ name, color, x: 0, y: 0 });
+  renderDucksList();
+  resetRace();
+}
+
+function removeDuck(idx){ ducks.splice(idx,1); renderDucksList(); resetRace(); }
+function editDuck(idx){
+  const current = ducks[idx];
+  const name = prompt('Edit duck name:', current.name);
+  if(name === null) return;
+  let color = prompt('Edit color (hex like #60a5fa):', current.color);
+  if(color === null) return;
+  if(!/^#([0-9a-fA-F]{3}){1,2}$/.test(color)) color = current.color;
+  ducks[idx] = { ...current, name: name.trim() || current.name, color };
+  renderDucksList(); resetRace();
+}
+
+function randomMadisonDucks(){
+  const count = Math.max(0, 4 - ducks.length);
+  for(let i=0;i<count;i++){
+    const name = MADISON_NAMES[randInt(0, MADISON_NAMES.length-1)];
+    const color = COLORS[randInt(0, COLORS.length-1)];
+    addDuck(name, color);
+  }
+}
+
+function clearAll(){ ducks = []; renderDucksList(); resetRace(); }
+
+function initDefaults(){
+  const { ducks: fromURL, seed } = parseParams();
+  if(seed !== null){ seedInUse = seed; rng = mulberry32(seed); }
+  if(fromURL.length){
+    ducks = fromURL.map(d => ({...d, x: 0, y:0}));
+  } else {
+    // Default Madison-themed lineup
+    ducks = [
+      { name: 'Mendota', color: '#60a5fa', x:0, y:0 },
+      { name: 'Monona',  color: '#f59e0b', x:0, y:0 },
+      { name: 'Capitol', color: '#86efac', x:0, y:0 },
+      { name: 'Bascom',  color: '#f472b6', x:0, y:0 },
+    ];
+  }
+}
+
+function wireUI(){
+  $('#addDuckBtn').addEventListener('click', ()=>{
+    const name = $('#nameInput').value;
+    const color = $('#colorInput').value;
+    addDuck(name, color);
+    $('#nameInput').value = '';
+  });
+
+  $('#ducksList').addEventListener('click', (e)=>{
+    const btn = e.target.closest('button'); if(!btn) return;
+    const idx = Number(btn.dataset.idx);
+    if(btn.dataset.action === 'remove') removeDuck(idx);
+    if(btn.dataset.action === 'edit') editDuck(idx);
+  });
+
+  $('#randomMadisonBtn').addEventListener('click', randomMadisonDucks);
+  $('#clearAllBtn').addEventListener('click', clearAll);
+  $('#startBtn').addEventListener('click', startRace);
+  $('#resetBtn').addEventListener('click', resetRace);
+
+  $('#shareBtn').addEventListener('click', async()=>{
+    const wantSeed = confirm('Include a seed so the outcome is repeatable?');
+    const seed = wantSeed ? (seedInUse ?? Math.floor(Math.random()*1e9)) : null;
+    if(wantSeed && seedInUse == null){ seedInUse = seed; rng = mulberry32(seed); }
+    const url = buildShareURL(ducks, seed);
+    const ok = await copyToClipboard(url);
+    $('#results').innerHTML = ok ? '🔗 Share URL copied!' : 'Could not copy. Manually copy from the address bar.';
+  });
+}
+
+// ===== Boot =====
+function boot(){
+  initDefaults();
+  renderDucksList();
+  resizeCanvasToDisplaySize();
+  // initialize x positions
+  const w = canvas.width; const padding = Math.floor(w*0.05);
+  ducks.forEach(d => { d.x = padding + rng()*5; });
+  drawScene();
+}
+
+wireUI();
+boot();
+
+</script>
+</body>
+</html>
