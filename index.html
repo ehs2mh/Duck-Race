@@ -233,7 +233,7 @@ function editDuck(idx){ const current=ducks[idx]; const name = prompt('Edit duck
 function randomMadisonDucks(){ const count = Math.max(0, 4 - ducks.length); for(let i=0;i<count;i++){ const name = MADISON_NAMES[Math.floor(Math.random()*MADISON_NAMES.length)]; const color = COLORS[Math.floor(Math.random()*COLORS.length)]; addDuck(name,color); } }
 function clearAll(){ ducks=[]; renderDucksList(); resetRace(); }
 
-function initDefaults(){ const {ducks:fromURL, seed} = parseParams(); if(seed!==null){ seedInUse=seed; rng = mulberry32(seed); } if(fromURL.length){ ducks = fromURL.map(d=>({...d,x:0,y:0})); } else { ducks = [ {name:'Mendota', color:'#60a5fa', x:0,y:0}, {name:'Monona', color:'#f59e0b', x:0,y:0}, {name:'Capitol', color:'#86efac', x:0,y:0}, {name:'Bascom', color:'#f472b6', x:0,y:0} ]; } }
+function initDefaults(){ const {ducks:fromURL, seed} = parseParams(); if(seed!==null){ seedInUse=seed; rng = mulberry32(seed); } if(fromURL.length){ ducks = fromURL.map(d=>({...d,x:0,y:0})); } else { ducks = [ {name:'Mendota', color:'#60a5fa', x:0,y:0}, {name:'Lamar Quackson', color:'#f59e0b', x:0,y:0}, {name:'New York Ducklings', color:'#86efac', x:0,y:0}, {name:'Duck Prescott', color:'#f472b6', x:0,y:0} ]; } }
 function wireUI(){
   document.getElementById('addDuckBtn').addEventListener('click', ()=>{ const name=$('#nameInput').value; const color=$('#colorInput').value; addDuck(name,color); $('#nameInput').value=''; });
   document.getElementById('ducksList').addEventListener('click', (e)=>{ const btn=e.target.closest('button'); if(!btn) return; const idx=Number(btn.dataset.idx); if(btn.dataset.action==='remove') removeDuck(idx); if(btn.dataset.action==='edit') editDuck(idx); });
